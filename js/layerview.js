@@ -24,6 +24,7 @@ var leftover = null;
 var receivingFrame = null;
 
 var gCanvasCx;
+var gCanvas;
 
 var lines = 0;
 function ll(s) {
@@ -166,8 +167,24 @@ function displayFrame(frameIndex) {
 	    var cs = $("<canvas>").addClass("texture-canvas").addClass("background-" + frameBackground)[0];
 	    cs.width = t.width;
 	    cs.height = t.height;
-	    var cx = cs.getContext("2d");
-	    cx.putImageData(t.imageData, 0, 0);
+	    let cx = cs.getContext("2d");
+            if (typeof t.imageData === "string") {
+                // convert from base64 to raw image buffer
+                var img = $("<img>", { src: t.imageData });
+
+                var loadingCanvas = $("<canvas>")[0];
+                loadingCanvas.width = t.width;
+                loadingCanvas.height = t.height;
+                let context = loadingCanvas.getContext("2d");
+                let temp = t;
+                img.load(function(){
+                    context.drawImage(this, 0, 0);
+                    temp.imageData = context.getImageData(0, 0, temp.width, temp.height);
+                    cx.putImageData(temp.imageData, 0, 0);
+                });
+            } else {
+	        cx.putImageData(t.imageData, 0, 0);
+            }
 	    d.append(cs);
 	}
 	$("#framedisplay").append(d);
@@ -465,6 +482,66 @@ $("#frameslider").slider({
     }
 });
 
+function convertFramesToJSON(frameData) {
+    var canvasToSave = document.createElement("canvas");
+    var canvasToSaveCx = canvasToSave.getContext("2d");
+
+    // clone whole data
+    var frameDataCopied = jQuery.extend(true, [], frameData);
+    for (var i = 0; i < frameDataCopied.length; ++i) {
+        var frame = frameDataCopied[i];
+
+        for (var j = 0; j < frame.textures.length; ++j) {
+            var t = frame.textures[j];
+
+            if (t.imageData) {
+                canvasToSave.width = t.width;
+                canvasToSave.height = t.height;
+                canvasToSaveCx.putImageData(t.imageData, 0, 0);
+                t.imageData = canvasToSave.toDataURL();
+            }
+        }
+    }
+
+    return JSON.stringify(frameDataCopied);
+}
+
+$("#saveFrame").click(function() {
+    var json = convertFramesToJSON(frames);
+    var blob = new Blob([json], {type: "application/json"});
+    var url  = URL.createObjectURL(blob);
+
+    var a = document.createElement('a');
+    a.download    = "backup.json";
+    a.href        = url;
+    a.textContent = "Download backup.json";
+    //document.body.appendChild(a);
+    a.click();
+    //console.log("test" + test);
+});
+
+function handleFileSelect(evt) {
+  var files = evt.target.files; // FileList object
+  f = files[0];
+  var reader = new FileReader();
+
+  // Closure to capture the file information.
+  reader.onload = (function (theFile) {
+    return function (e) {
+      // Render thumbnail.
+      JsonObj = e.target.result;
+      clearFrames();
+      frames = JSON.parse(JsonObj);
+      $("#frameslider").slider("option", "max", frames.length-1);
+      displayFrame(0);
+      updateInfo();
+    };
+  })(f);
+  // Read in JSON as a data URL.
+  reader.readAsText(f);
+}
+
+document.getElementById('files').addEventListener('change', handleFileSelect, false);
 updateInfo();
 
 if ('RecordedData' in window) {

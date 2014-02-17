@@ -9,7 +9,7 @@
 
   <script src="js/lz4-decompress.js"></script>
   <script src="js/sha1.js"></script>
-  <script src="js/layerview.js"></script>
+  <script type="application/javascript;version=1.7" src="js/layerview.js"></script>
 
 <style type="text/css">
 body {
@@ -69,12 +69,14 @@ body {
 </head>
 <body>
 
-<input id="urlfield" value="ws://192.168.112.129:23457"></input><button id="connect">Connect</button> <span id="infomsg"></span><br>
+<input id="urlfield" value="ws://localhost:23457"></input><button id="connect">Connect</button> <span id="infomsg"></span><br>
 Background: <select id="bkgselect">
   <option selected>Pattern</option>
   <option>White</option>
   <option>Black</option>
 </select>
+<button id="saveFrame">Save Frame</button>
+<input type="file" id="files" name="files[]" />
 <div id="info"></div>
 <div id="frameslider"></div>
 
